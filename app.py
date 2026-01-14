@@ -13,11 +13,7 @@ def chat():
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
 
     payload = {
-        "prompt": {
-            "messages": [
-                {"author": "user", "content": [{"type": "text", "text": user_message}]}
-            ]
-        },
+        "prompt": {"text": user_message},
         "temperature": 0.7,
         "maxOutputTokens": 500
     }
