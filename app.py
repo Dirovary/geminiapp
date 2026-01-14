@@ -10,11 +10,11 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 def chat():
     user_message = request.json.get("message")
 
-url = (
-    "https://generativelanguage.googleapis.com/v1beta/"
-    "models/gemini-2.5-flash:generateContent"
-    f"?key={GEMINI_API_KEY}"
-)
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/"
+        "models/gemini-2.5-flash:generateContent"
+        f"?key={GEMINI_API_KEY}"
+    )
 
     payload = {
         "contents": [
@@ -27,7 +27,6 @@ url = (
     }
 
     response = requests.post(url, json=payload)
-
     data = response.json()
 
     try:
