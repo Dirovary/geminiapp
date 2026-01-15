@@ -11,20 +11,16 @@ GEMINI_URL = (
     "models/gemini-2.5-flash:generateContent"
 )
 
-@app.route("/v1/chat/completions", methods=["POST"])
-def chat_completions():
-    data = request.json
-
+def handle_chat(data):
     messages = data.get("messages", [])
     if not messages:
-        return jsonify({"error": "No messages provided"}), 400
+        return None, "No messages provided"
 
-    # 🔁 OpenAI messages → Gemini contents
     parts = []
     for msg in messages:
         role = msg.get("role")
         content = msg.get("content", "")
-        if role in ("user", "system"):
+        if role in ("system", "user", "assistant"):
             parts.append({"text": content})
 
     payload = {
@@ -42,14 +38,19 @@ def chat_completions():
             timeout=60
         )
         response.raise_for_status()
-        gemini_data = response.json()
-
-        reply_text = gemini_data["candidates"][0]["content"]["parts"][0]["text"]
-
+        data = response.json()
+        reply = data["candidates"][0]["content"]["parts"][0]["text"]
+        return reply, None
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return None, str(e)
 
-    # 🧠 OpenAI-compatible response
+
+@app.route("/v1beta/chat/completions", methods=["POST"])
+def chat_completions_v1beta():
+    reply, error = handle_chat(request.json)
+    if error:
+        return jsonify({"error": error}), 500
+
     return jsonify({
         "id": "chatcmpl-gemini",
         "object": "chat.completion",
@@ -58,21 +59,16 @@ def chat_completions():
                 "index": 0,
                 "message": {
                     "role": "assistant",
-                    "content": reply_text
+                    "content": reply
                 },
                 "finish_reason": "stop"
             }
-        ],
-        "usage": {
-            "prompt_tokens": 0,
-            "completion_tokens": 0,
-            "total_tokens": 0
-        }
+        ]
     })
 
 
-@app.route("/v1/models", methods=["GET"])
-def list_models():
+@app.route("/v1beta/models", methods=["GET"])
+def models_v1beta():
     return jsonify({
         "object": "list",
         "data": [
