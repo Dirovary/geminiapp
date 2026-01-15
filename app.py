@@ -24,7 +24,7 @@ def to_gemini_payload(messages):
     return {"contents": [{"parts": parts}]}
 
 def openai_response(text):
-    """Формат OpenAI-compatible для RikkaHub"""
+    """Формат OpenAI-compatible для RikkaHub с usage"""
     return {
         "id": "chatcmpl-gemini",
         "object": "chat.completion",
@@ -39,7 +39,12 @@ def openai_response(text):
                 },
                 "finish_reason": "stop"
             }
-        ]
+        ],
+        "usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+        }
     }
 
 # ===================== CHAT COMPLETIONS =====================
@@ -54,7 +59,7 @@ def chat_completions():
         return jsonify({"error": "messages field required"}), 400
 
     try:
-        # Отправляем запрос в Gemini
+        # Отправляем запрос в Gemini API
         r = requests.post(
             f"{GEMINI_URL}?key={GEMINI_API_KEY}",
             json=to_gemini_payload(messages),
@@ -73,7 +78,7 @@ def chat_completions():
 @app.route("/v1/models", methods=["GET"])
 @app.route("/v1beta/models", methods=["GET"])
 def models():
-    """Обязательный эндпоинт для RikkaHub, чтобы подтягивалась модель"""
+    """Обязательный эндпоинт для RikkaHub"""
     return jsonify({
         "object": "list",
         "data": [
