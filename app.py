@@ -54,7 +54,7 @@ def chat_completions():
         return jsonify({"error": "messages field required"}), 400
 
     try:
-        # Отправляем в Gemini API
+        # Отправляем запрос в Gemini
         r = requests.post(
             f"{GEMINI_URL}?key={GEMINI_API_KEY}",
             json=to_gemini_payload(messages),
