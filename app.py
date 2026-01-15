@@ -4,6 +4,7 @@ import requests
 
 app = Flask(__name__)
 
+# ===================== НАСТРОЙКИ =====================
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 MODEL_ID = "gemini-2.5-flash"
 
@@ -12,16 +13,18 @@ GEMINI_URL = (
     f"models/{MODEL_ID}:generateContent"
 )
 
-# ========= ВСПОМОГАТЕЛЬНО =========
+# ===================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====================
 
 def to_gemini_payload(messages):
+    """Преобразуем OpenAI messages -> Gemini contents.parts"""
     parts = []
-    for m in messages:
-        if m.get("content"):
-            parts.append({"text": m["content"]})
+    for msg in messages:
+        if msg.get("content"):
+            parts.append({"text": msg["content"]})
     return {"contents": [{"parts": parts}]}
 
 def openai_response(text):
+    """Формат OpenAI-compatible для RikkaHub"""
     return {
         "id": "chatcmpl-gemini",
         "object": "chat.completion",
@@ -39,18 +42,19 @@ def openai_response(text):
         ]
     }
 
-# ========= CHAT COMPLETIONS =========
+# ===================== CHAT COMPLETIONS =====================
 
 @app.route("/v1/chat/completions", methods=["POST"])
 @app.route("/v1beta/chat/completions", methods=["POST"])
 def chat_completions():
     data = request.json or {}
     messages = data.get("messages")
-
+    
     if not messages:
-        return jsonify({"error": "messages required"}), 400
+        return jsonify({"error": "messages field required"}), 400
 
     try:
+        # Отправляем в Gemini API
         r = requests.post(
             f"{GEMINI_URL}?key={GEMINI_API_KEY}",
             json=to_gemini_payload(messages),
@@ -58,17 +62,18 @@ def chat_completions():
         )
         r.raise_for_status()
         reply = r.json()["candidates"][0]["content"]["parts"][0]["text"]
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
     return jsonify(openai_response(reply))
 
-
-# ========= MODELS (КЛЮЧЕВОЕ МЕСТО) =========
+# ===================== MODELS =====================
 
 @app.route("/v1/models", methods=["GET"])
 @app.route("/v1beta/models", methods=["GET"])
 def models():
+    """Обязательный эндпоинт для RikkaHub, чтобы подтягивалась модель"""
     return jsonify({
         "object": "list",
         "data": [
@@ -81,8 +86,19 @@ def models():
         ]
     })
 
+# ===================== DASHBOARD / CREDIT =====================
+# Чтобы RikkaHub не ругался на баланс
+@app.route("/v1/dashboard/billing/credit_grants", methods=["GET"])
+@app.route("/v1beta/dashboard/billing/credit_grants", methods=["GET"])
+def credit_grants():
+    return jsonify({
+        "object": "credit_grants",
+        "total_granted": 1000000,
+        "total_used": 0,
+        "total_available": 1000000
+    })
 
-# ========= RUN =========
+# ===================== RUN =====================
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
